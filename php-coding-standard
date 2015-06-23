@@ -1,0 +1,608 @@
+CI框架下PHP编码规范
+
+文件格式
+
+文件应该使用 Unicode (UTF-8) 编码保存, 不要使用 字节序标记(BOM)。
+
+所有的PHP源文件 必须使用Unix LF(换行)作为行结束符。
+
+PHP 闭合标签
+
+不要使用php闭合标签"?>"
+
+任何由开发者，用户，或者FTP应用程序插入闭合标签后面的空格都有可能会引起多余的输出、php错误、之后的输出无法显示、空白页
+
+不当的:
+
+<?php
+
+echo "Here's my code!";
+
+?>
+
+ 
+
+适当的:
+
+<?php
+
+echo "Here's my code!";
+
+/* End of file myfile.php */
+
+/* Location: ./system/modules/mymodule/myfile.php */
+
+ 
+命名规则
+
+1)文件命名规则
+
+(强制）文件名使用CamelCase
+
+//不当的
+
+p_cancelorder.php
+
+ 
+
+//恰当的
+
+pCancelOrder.php
+
+ 
+2）类名命名规则
+
+（强制）类名使用PascalCase
+
+不当的:
+
+class superclass
+
+class Super_class
+
+适当的:
+
+class SuperCass {
+
+   function __construct()
+
+   {
+
+   }
+
+}
+3）方法及变量命名规则
+
+（强制）方法和变量名称使用camelCase()，首字母小写。
+
+不当的:
+
+function fileproperties()  // 方法名没有清晰的描述以及下划线分割单词
+
+function fileProperties()  // 方法名没有清晰的描述以及使用了驼峰法命名
+
+function getfileproperties()  // 还可以!但是忘记了下划线分割单词
+
+function get_the_file_properties_from_the_file() // 方法名太冗长
+
+function get_file_properties() //使用了下划线分割单词，不符合camel格式
+
+ 
+
+适当的:
+
+function getFileProperties()  // 使用了驼峰法命名
+
+ 
+
+不当的:
+
+$j = 'foo';  // 单字符变量应该只作为for()的循环变量使用
+
+$Str   // 使用了大写字母
+
+$groupid  // 多个词组，应该使用下划线分割
+
+$name_of_last_city_used // 太长了
+
+ 
+
+适当的:
+
+for ($j = 0; $j < 10; $j++)
+
+$str
+
+$buffer
+
+$bufferedText  // 使用了驼峰命名,简洁明确
+
+ 
+4）常量命名规则
+
+（强制）常量或者类变量全部使用大写，单词使用下划线分隔
+
+不当的:
+
+myConstant // 未使用下划线分割单词，未全部使用大写字母
+
+N  // 不能使用单个字母作为常量
+
+S_C_VER  // 常量名没有清晰的含义
+
+$str = str_replace('{foo}', 'bar', $str); // should use LD and RD constants
+
+ 
+
+恰当的:
+
+MY_CONSTANT
+
+NEWLINE
+
+SUPER_CLASS_VERSION
+
+$str = str_replace(LD.'foo'.RD, 'bar', $str);
+ 
+
+错误输出
+
+（强制）当php的error reporting level设置成为E_ERROR|E_PARSE级别时，代码必须不能产生任何warning或error
+
+开发环境推荐设置：error_reporting(E_ALL|E_STRICT)
+
+线上环境推荐设置：error_reporting(E_ERROR|E_PARSE)
+
+ 
+
+硬编码
+
+（强制）避免硬编码和随意使用cache的关键字
+
+//不当的设计
+
+Class MyClass
+
+{
+
+$type=$this->input->get('type');
+
+If ($type == 1) { // 使用了魔术数字常量 
+
+   $key = "prefix_v2_" . $orderid; //随意指定key的prefix内容
+
+   $cacheValue = $cache->get($key);  
+
+}
+
+}
+
+//适当的
+
+Class MyClass
+
+{
+
+const INPUT_TYPE_TXT = 1;
+
+ 
+
+$type = $this->input->get('type');
+
+if ($type == self:INPUT_TYPE_TXT) {
+
+     $this->load->config('cacheKey'); 
+
+     $prefix = $this->config->item('prefixCacheKey'); //从配置文件中统一获取prefix内容
+
+     $key = $prefix . $orderId;
+
+          $cacheValue = $cache->get($key);
+
+      }
+
+}
+注释
+
+（强制）controller中的public 必须有详细的输入参数和返回结果说明（使用gendoc）
+
+ （推荐）private 方法或者model中的方法使用简洁的注释
+
+（推荐）在文件头或者类部分注释标识好文件的主要功能
+
+     
+
+ 
+
+日志规范
+
+（强制） 统一调用 log_fatal  log_warning log_trace
+
+（推荐）接口函数的入口需要使用log_trace（统一在hook函数中添加）
+
+（强制）当业务不能正常执行（调用第三方失败、与数据库交互失败、客户端传参不对、业务逻辑上数据不对等情况），直接调用log_fatal。等同于线上500错误，一旦出现，立即报警，并马上处理。
+
+（推荐）当业务依然可以进行，但是结果不太符合预期（数据类型错误、逻辑判断不严谨等），调用log_warning。对业务无影响，但是可能存在隐患，后续升级后处理。
+
+（强制）WARNING或者FATAL日志编码格式如下：
+
+ [level][time][file:no][logid][api:name][errno｜msg] 
+
+注：黄色内容为本次添加目志规范
+
+ 
+
+DB操作
+
+（强制）避免在controller中直接操作数据库
+
+（强制）避免在函数构造器中使用load database操作
+
+（推荐）使用active record模式与db进行交互、慎用直接拼装sql操作 
+
+  
+
+数组操作
+
+（强制）对数组做遍历前先判断是否为空
+
+//不当的
+
+$orderArray=.....;
+
+foreach ($orderArray as $oneOrder) {
+
+    
+
+}
+
+ 
+
+//适当的
+
+$orderArray=.....;
+
+if (empty($orderArray)) {
+
+   return FALSE;
+
+}
+
+foreach ($orderArray as $oneOrder) {
+
+ 
+
+}
+
+ 
+ 
+
+（推荐）数组最后一个元素带上逗号
+
+（推荐）关联数组一般分行，每个item占一行，最后括号也单独占一行
+
+//不当的
+
+array(
+
+     'key1'=>$value1,'key2'=>$value2,'key3'=>$value3,'key4'=>$value4
+
+)                           //所有的元素堆积到同一行中
+
+ 
+
+array(
+
+     'key1'=>$value1,
+
+     'key2'=>$value2            //最后一个item结束没有使用逗号
+
+)
+
+ 
+
+//适当的
+
+array(
+
+     'key1'=>$value1,
+
+     'key2'=>$value2,
+
+)
+
+ 
+
+ 
+ 
+
+控制语句
+
+（强制）不要在条件语句中赋值
+
+（强制）语句块必须用一对大括号包含（即使只有一行）
+
+（推荐）TRUE，FLASE，NULL几个值使用大写，不要用小写
+
+（推荐）函数参数的个数建议不超过5个，多余的则使用数组形式传参
+
+（推荐）不明确的参数尽可能靠后，有默认值的参数最后     
+
+（推荐）else if 写成elseif，并补全最后的else分支
+
+     
+
+//不当的  
+
+if ($tmpBool=($value1>$value2)==true) //if语句中使用了赋值操作
+
+$value = true;           //语句块未使用大括号包含
+
+else if ($value1 < $value2)   //else if未串接起来
+
+$value = false;           //语句块未使用大括号包含
+
+                      //else语句缺失
+
+//适当的
+
+$tmpBool = $value1>$value2;
+
+if ($tmpBool === TRUE) {
+
+     $value = TRUE;       //即使一行代码，也使用大括号包含
+
+} elseif ($value1 < $value2) {
+
+    $value = FALSE;
+
+} else {                //else与上面的elseif匹配
+
+     ;                 //空行使用分号表示
+
+}
+
+ 
+ 
+
+（推荐）switch 语句中使用default
+
+ 
+
+数据类型转换
+
+（推荐）变量在生命周期中，其类型不要发生变化
+
+（推荐）当你不确定变量是何种类型时，在使用前请将它强制转化成你需要的类型
+
+//不当的
+
+Class MyController extends CI_Controller
+
+{
+
+    function index()
+
+    {
+
+        $type = $this->input->get('type');  //type参数，约定为0,1,2,3
+
+        $model = $this->load->model("MyModel");
+
+         $this->MyModel->myMethod($type);
+
+     }
+
+}
+
+ 
+
+ 
+
+//适当的
+
+Class MyController extends CI_Controller
+
+{
+
+  function index()
+
+  {
+
+    $type = $this->input->get('type');  //type参数，约定为0,1,2,3
+
+    $type = intval($type);
+
+    $model = $this->load->model("MyModel");
+
+    $this->MyModel->myMethod($type);
+
+  }
+
+}
+
+ 
+ 
+
+（推荐）类型转换应该发生在赋值的时候，而不是发生在使用的时候，特殊情况除外
+
+ 
+
+代码风格
+
+（强制）代码必须使用4个空格来进行缩进，而不是用制表符。
+
+（推荐） 一行代码的长度不建议有硬限制；软限制必须为120个字符，建议每行代码80个字符或者更少。
+
+（推荐）在命名空间(namespace)的声明下面必须有一行空行，并且在导入(use)的声明下面也必须有一行空行。
+
+（强制）类(class)的左花括号必须放到其声明下面自成一行，右花括号则必须放到类主体下面自成一行。
+
+ 
+
+//不当的
+
+Class MyController { // 花括号要放到声明下面自成一行
+
+}
+
+ 
+
+//适当的，注意括号，逗号，空格和花括号的位置：
+
+Class MyController
+
+{
+
+}
+ 
+
+（强制）方法(method)的左花括号必须放到其声明下面自成一行，右花括号则必须放到方法主体的下一行。
+
+ 
+
+//不当的
+
+Class MyController
+
+ {
+
+public function fooBarBaz($arg1, &$arg2, $arg3 = []) { // 花括号要放到声明下面自成一行
+
+   // 方法主体部分
+
+}
+
+}
+
+ 
+
+//适当的，注意括号，逗号，空格和花括号的位置：
+
+Class MyController
+
+{
+
+public function fooBarBaz($arg1, &$arg2, $arg3 = [])
+
+ {
+
+   // 方法主体部分
+
+}
+
+}
+ 
+
+（强制）所有的属性(property)和方法(method) 必须有可见性声明；抽象(abstract)和终结(final)声明必须在可见性声明之前；而静态(static)声明必须在可见性声明之后。
+
+（强制）在控制结构关键字的后面必须有一个空格；而方法(method)和函数(function)的关键字的后面不可有空格。
+
+（强制）控制结构的左花括号必须跟其放在同一行，右花括号必须放在该控制结构代码主体的下一行。
+
+（强制）控制结构的左括号之后不可有空格，右括号之前也不可有空格。
+
+ 
+
+//不当的
+
+Foo::bar($arg2,$arg3,$arg4); // 参数之间无空格。
+
+if($expr1)
+
+{
+
+    // if body
+
+}
+
+elseif($expr2) 
+
+{
+
+    // elseif body
+
+}
+
+else
+
+{
+
+    // else body;
+
+}
+
+while($expr)
+
+{
+
+}
+
+do
+
+{
+
+}while($expr);
+
+for($i=0;$i<10;$i++)
+
+{
+
+}
+
+foreach($iterable as $key=>$value)
+
+{
+
+}
+
+ 
+
+ 
+
+//适当的，注意括号，逗号，空格和花括号的位置：
+
+Foo::bar($arg2, $arg3, $arg4); 
+
+if ($expr1) {
+
+    // if body
+
+} elseif ($expr2) {
+
+    // elseif body
+
+} else {
+
+    // else body;
+
+}
+
+while ($expr) {
+
+}
+
+do {
+
+} while ($expr);
+
+for ($i = 0; $i < 10 ; $i++) {
+
+}
+
+foreach ($iterable as $key => $value) {
+
+}
+
+ 
+ 
+
+错误处理规范
+
+（推荐）在底层的类中，如果没有显示的界面，方法调用应该返回FASLE或NULL表示调用失败，并设置类错误信息成员变量。
+
+（推荐）在成员函数中应该检查参数的合法性，运行状态中参数的合法性，执行结果是否为null等。
+
+（推荐）在调用端，及时检查方法调用返回值并做相应处理。
+
+（推荐）尽量区分程序的逻辑错误和异常错误，底层类中尽量减少抛出异常次数。
