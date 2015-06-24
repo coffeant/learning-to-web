@@ -1,0 +1,96 @@
+Table of Contents
+pheanstalk pool usage
+安装依赖
+基本使用方式
+进阶使用方式
+基本概念
+put
+release
+touch
+增加读写超时限制（
+安装依赖
+
+composer.json 文件如下，现在是开发版，稳定后会更新此文档
+
+{
+    "repositories": [
+        {
+            "type": "git",
+            "url": "https://github.com/deafwolf/pheanstalk"
+        }
+    ],
+
+  "require": {
+    "pda/pheanstalk": "master@dev"
+  }
+}
+基本使用方式
+
+# 加载
+require_once './autoload.php'; # 线上路径是 /usr/local/lib/php/pheanstalkd/autoload.php
+use Pheanstalk\PheanstalkPool;
+
+# 初始化
+$pool = new PheanstalkPool(array("127.0.0.1:11300", "127.0.0.1:11301"));
+
+# 选择要将消息塞到哪个 tube 中，连接后默认 use default
+$pool->useTube("tube1");
+
+# 将消息塞入刚才选择的 tube
+$pool->put("msg1");
+$pool->put("msg2");
+
+# 选择从哪个 tube 中取消息，可以多个    
+$pool->watch("tube1");
+$pool->watch("tube2");
+$pool->watch("tube3");
+
+# 取消对 tube 的 watch，连接后默认 watch default
+$pool->ignore("default");
+
+# 从 watch 的 tube 中取消息
+$timeout = 0;
+$job1 = $pool->reserve($timeout);
+$job2 = $pool->reserve($timeout);
+
+# 获取消息体
+$data = $job1->getData();
+
+# 消息处理完成，删除消息
+$job1->delete();
+
+# 消息处理失败，暂时释放消息，等待下次重试
+$job2->release();
+
+# 异常处理
+try {
+    $pool->reserve(0);
+} catch (Exception\SocketException $ex) {
+    # do something
+}
+进阶使用方式
+
+基本概念
+
+delay: msg 进入队列后，要过多长时间才能 reserve 出来，默认 0
+priority: 优先级，0 最高，0xFFFFFFFF 最低，默认 1024
+ttr: time to run, reverse 出 job 之后，在 ttr 时间内没有 delete 或者 release，server 端会自动 release 这个 job，默认 60 秒
+put
+
+$priority = 256;
+$delay = 10;
+$ttr = 900
+$pool->put("msg3", $priority, $delay, $ttr);
+release
+
+$priority = 2048;
+$delay = 0;
+$job->release($priority, $delay);
+touch
+
+# 处理时间超过 ttr 时，使用 touch 可以重新开始计算 ttr
+$job->touch();
+增加读写超时限制（
+
+ #默认是不会抛异常，如果耗时迟大于所设置的时间），例如100毫秒
+ $pool = new PheanstalkPool(array("host1:11300", "host2:11300"), $connectTimeout=null, $socketTimeoutSec=0, $socketTimeoutMsec=100);
